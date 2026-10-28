@@ -33,6 +33,38 @@ This tool keeps the letter text fixed, lets you change only what differs per app
 | Storage | Browser local storage |
 | Optional local server | XAMPP (Apache) |
 
+## Architecture
+
+A **static, build-free single-page tool**: open `index.html` and it runs. There is no server, bundler or package install.
+
+```
+index.html ──▶ editor form + A4 preview
+     │
+     ├── lib/ (jsPDF)                   PDF export
+     ├── personal.local.js (optional)   private sender defaults    ← git-ignored
+     └── signature.local.js (optional)  default signature image    ← git-ignored
+```
+
+The preview and the exports are generated from the same letter content, so what you see on the A4 preview is what you download.
+
+## Data and Storage Design
+
+There is no database. State lives in two places:
+
+| What | Where | Why |
+|---|---|---|
+| Letter text edits | Browser local storage | Survive a page refresh and stay on your machine |
+| Sender details and signature | Browser local storage, or the git-ignored `*.local.js` files | Enter once and reuse across letters |
+| Private defaults (address, phone, signature PNG) | `personal.local.js`, `signature.local.js` | Loaded as `window.PERSONAL_DEFAULTS` and `window.DEFAULT_SIGNATURE` without ever being committed |
+
+## Key Implementation Decisions
+
+- **Client-only and offline by design.** A cover letter contains personal details, so nothing is sent anywhere.
+- **Private data kept out of Git.** Address, phone number and signature are loaded from two `.local.js` files listed in `.gitignore`, so the public repository holds only the tool.
+- **jsPDF is bundled** (MIT licence) instead of loaded from a CDN, so PDF export works offline and does not depend on a third party being available.
+- **Fit-to-one-page logic.** The PDF generator slightly reduces the text size when needed so the letter stays on a single page, which internship applications usually expect.
+- **Graceful fallback.** Without the local files the editor still works; details can be entered in the page and are remembered by the browser.
+
 ## Installation
 
 1. **Clone the repository**
@@ -80,3 +112,9 @@ your browser.
 - PDFs are created with [jsPDF](https://github.com/parallax/jsPDF) 2.5.1 (bundled in `lib/`, MIT licence),
   shrinking the text slightly when needed so the letter fits on one page.
 - Edits to the letter text are saved in the browser's local storage.
+
+## Known Limitations
+
+- **Browser-bound storage.** Edits live in one browser on one device. Clearing site data removes them, and they do not sync across devices.
+- **Output is shrunk, not reflowed.** A very long letter will be set in small type to fit one page, so shorten the text rather than relying on automatic shrinking.
+- **Local-only.** There is no hosted version; run it from your own computer.
